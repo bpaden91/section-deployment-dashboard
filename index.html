@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Section — Deployment Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #FAFAFA; --card-bg: #FFFFFF; --text-primary: #0A070D; --text-secondary: #6B7280;
+            --text-muted: #9CA3AF; --border: #E5E7EB; --accent-mint: #00FFB7; --accent-grape: #9901EB;
+            --accent-blue: #3900FF; --accent-pink: #F100D6; --accent-lime: #9FFF61;
+            --section-black: #0A070D; --green: #10B981; --amber: #F59E0B; --red: #EF4444;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg); color: var(--text-primary); line-height: 1.5; -webkit-font-smoothing: antialiased;
+        }
+        .dashboard { max-width: 1280px; margin: 0 auto; padding: 24px; }
+
+        /* ========== SETUP SCREEN ========== */
+        .setup-screen {
+            min-height: 80vh; display: flex; align-items: center; justify-content: center;
+        }
+        .setup-card {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px;
+            padding: 48px; max-width: 480px; width: 100%; text-align: center;
+        }
+        .setup-card h1 {
+            font-family: 'Montserrat', 'Inter', sans-serif;
+            font-size: 24px; font-weight: 700; color: var(--section-black); margin-bottom: 8px;
+        }
+        .setup-card p { color: var(--text-secondary); font-size: 14px; margin-bottom: 24px; }
+        .setup-card input[type="password"] {
+            width: 100%; padding: 12px 16px; border: 2px solid var(--border); border-radius: 8px;
+            font-size: 14px; font-family: monospace; margin-bottom: 16px; transition: border-color 0.2s;
+        }
+        .setup-card input[type="password"]:focus { outline: none; border-color: var(--accent-grape); }
+        .setup-card button {
+            width: 100%; padding: 12px; background: var(--section-black); color: var(--accent-mint);
+            border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+            letter-spacing: 0.5px; transition: opacity 0.2s;
+        }
+        .setup-card button:hover { opacity: 0.9; }
+        .setup-card button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .setup-error { color: var(--red); font-size: 13px; margin-top: 12px; display: none; }
+        .setup-hint { color: var(--text-muted); font-size: 12px; margin-top: 16px; }
+        .setup-hint a { color: var(--accent-grape); }
+
+        /* ========== HEADER ========== */
+        header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 28px; flex-wrap: wrap; gap: 16px;
+        }
+        header .title-block h1 {
+            font-family: 'Montserrat', 'Inter', sans-serif;
+            font-size: 28px; font-weight: 700; color: var(--section-black); letter-spacing: -0.5px;
+        }
+        header .meta { text-align: right; font-size: 13px; color: var(--text-muted); }
+        header .meta .live-badge {
+            display: inline-block; background: var(--section-black); color: var(--accent-mint);
+            font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 12px;
+            letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 4px;
+        }
+        .disconnect-btn {
+            background: none; border: 1px solid var(--border); border-radius: 6px;
+            padding: 4px 10px; font-size: 11px; color: var(--text-muted); cursor: pointer;
+            margin-top: 4px;
+        }
+        .disconnect-btn:hover { border-color: var(--red); color: var(--red); }
+
+        .section-header {
+            font-family: 'Montserrat', 'Inter', sans-serif;
+            font-size: 18px; font-weight: 700; color: var(--section-black);
+            margin: 32px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border);
+        }
+        .filter-bar { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
+        .filter-bar label { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+        .filter-bar select {
+            padding: 8px 32px 8px 12px; border: 1px solid var(--border); border-radius: 6px;
+            font-size: 13px; background: var(--card-bg); color: var(--text-primary);
+            appearance: none; cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236B7280' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 10px center;
+        }
+        .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+        .kpi-card {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+            padding: 20px; position: relative; overflow: hidden;
+        }
+        .kpi-card .kpi-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .kpi-card .kpi-value { font-family: 'Montserrat', 'Inter', sans-serif; font-size: 36px; font-weight: 700; color: var(--section-black); line-height: 1; }
+        .kpi-card .kpi-detail { font-size: 13px; color: var(--text-secondary); margin-top: 8px; }
+        .kpi-card .kpi-bar { position: absolute; bottom: 0; left: 0; height: 4px; border-radius: 0 2px 0 0; transition: width 0.6s ease; }
+
+        .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
+        .chart-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+        .chart-card h3 { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 16px; }
+        .chart-container { position: relative; height: 280px; }
+
+        .table-section { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 28px; }
+        .table-section h3 { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+        .table-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .table-controls input { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; width: 260px; }
+        .table-controls .record-count { font-size: 13px; color: var(--text-muted); }
+
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--border); font-weight: 600; color: var(--text-secondary); cursor: pointer; user-select: none; white-space: nowrap; }
+        th:hover { color: var(--text-primary); }
+        th .sort-arrow { margin-left: 4px; font-size: 10px; }
+        td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text-primary); }
+        tr:hover td { background: #F9FAFB; }
+
+        .status-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .status-completed { background: #D1FAE5; color: #065F46; }
+        .status-in-progress { background: #FEF3C7; color: #92400E; }
+        .status-not-started { background: #FEE2E2; color: #991B1B; }
+        .status-onboarded { background: #DBEAFE; color: #1E40AF; }
+        .skill-done { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: #D1FAE5; color: #065F46; }
+        .skill-empty { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: #F3F4F6; color: #9CA3AF; }
+        .progress-bar-container { width: 80px; height: 6px; background: var(--border); border-radius: 3px; display: inline-block; vertical-align: middle; margin-right: 6px; }
+        .progress-bar-fill { height: 100%; border-radius: 3px; background: var(--accent-grape); }
+
+        .loading-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--accent-mint); border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 8px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        footer { text-align: center; font-size: 12px; color: var(--text-muted); padding: 16px 0; border-top: 1px solid var(--border); }
+        footer a { color: var(--accent-grape); text-decoration: none; }
+
+        .hidden { display: none !important; }
+        @media (max-width: 768px) { .charts-row { grid-template-columns: 1fr; } .kpis { grid-template-columns: 1fr 1fr; } header { flex-direction: column; } header .meta { text-align: left; } }
+        @media print { .filter-bar, .table-controls input, .disconnect-btn { display: none; } .chart-card, .kpi-card, .table-section { break-inside: avoid; } body { background: white; } }
+    </style>
+</head>
+<body>
+
+<!-- ==================== SETUP SCREEN ==================== -->
+<div class="setup-screen" id="setupScreen">
+    <div class="setup-card">
+        <h1>Section Deployment Dashboard</h1>
+        <p>Enter your Section Reporting API key to view your deployment data.</p>
+        <input type="password" id="apiKeyInput" placeholder="Paste your API key here" autocomplete="off">
+        <button id="connectBtn" onclick="handleConnect()">Connect</button>
+        <div class="setup-error" id="setupError"></div>
+        <div class="setup-hint">
+            Your API key stays in this browser only. No data is sent to Section.<br>
+            Need a key? Contact your Section account manager.
+        </div>
+    </div>
+</div>
+
+<!-- ==================== DASHBOARD ==================== -->
+<div class="dashboard hidden" id="dashboardView">
+    <header>
+        <div class="title-block">
+            <h1 id="dashTitle">Section Deployment Dashboard</h1>
+        </div>
+        <div class="meta">
+            <div class="live-badge">Live Data</div>
+            <div id="lastUpdated">—</div>
+            <button class="disconnect-btn" onclick="disconnect()">Disconnect</button>
+        </div>
+    </header>
+
+    <div class="filter-bar">
+        <label for="brandFilter">Organization:</label>
+        <select id="brandFilter"><option value="all">All</option></select>
+        <label for="statusFilter">Status:</label>
+        <select id="statusFilter">
+            <option value="all">All Statuses</option>
+            <option value="completed">Completed</option>
+            <option value="in-progress">In Progress</option>
+            <option value="onboarded">Onboarded Only</option>
+            <option value="not-started">Not Started</option>
+        </select>
+    </div>
+
+    <h2 class="section-header">ProfAI Program</h2>
+    <section class="kpis">
+        <div class="kpi-card"><div class="kpi-label">Total Users</div><div class="kpi-value" id="kpiTotal">—</div><div class="kpi-detail" id="kpiTotalDetail">—</div><div class="kpi-bar" id="kpiTotalBar" style="background: var(--accent-blue);"></div></div>
+        <div class="kpi-card"><div class="kpi-label">Onboarded</div><div class="kpi-value" id="kpiOnboarded">—</div><div class="kpi-detail" id="kpiOnboardedDetail">—</div><div class="kpi-bar" id="kpiOnboardedBar" style="background: var(--accent-grape);"></div></div>
+        <div class="kpi-card"><div class="kpi-label">Program Completed</div><div class="kpi-value" id="kpiCompleted">—</div><div class="kpi-detail" id="kpiCompletedDetail">—</div><div class="kpi-bar" id="kpiCompletedBar" style="background: var(--green);"></div></div>
+        <div class="kpi-card"><div class="kpi-label">Completion Rate</div><div class="kpi-value" id="kpiRate">—</div><div class="kpi-detail" id="kpiRateDetail">—</div><div class="kpi-bar" id="kpiRateBar" style="background: var(--accent-mint);"></div></div>
+        <div class="kpi-card"><div class="kpi-label">Use Cases Created</div><div class="kpi-value" id="kpiUseCases">—</div><div class="kpi-detail" id="kpiUseCasesDetail">—</div><div class="kpi-bar" id="kpiUseCasesBar" style="background: var(--accent-pink);"></div></div>
+    </section>
+
+    <section class="charts-row">
+        <div class="chart-card"><h3>Users by Organization</h3><div class="chart-container"><canvas id="brandChart"></canvas></div></div>
+        <div class="chart-card"><h3>Completion Funnel</h3><div class="chart-container"><canvas id="funnelChart"></canvas></div></div>
+    </section>
+    <section class="charts-row">
+        <div class="chart-card"><h3>Onboarding Timeline</h3><div class="chart-container"><canvas id="timelineChart"></canvas></div></div>
+        <div class="chart-card"><h3>Completion Rate by Organization</h3><div class="chart-container"><canvas id="rateChart"></canvas></div></div>
+    </section>
+
+    <section class="table-section" id="skillsSection"><h3>Skill Completion</h3><div style="overflow-x: auto;"><table><thead id="skillsTableHead"></thead><tbody id="skillsTableBody"></tbody></table></div></section>
+
+    <h2 class="section-header" id="academyHeader">AI Academy</h2>
+    <section class="kpis" id="academyKpis">
+        <div class="kpi-card"><div class="kpi-label">Courses Available</div><div class="kpi-value" id="kpiCourses">—</div><div class="kpi-detail" id="kpiCoursesDetail">—</div><div class="kpi-bar" id="kpiCoursesBar" style="background: var(--accent-grape);"></div></div>
+        <div class="kpi-card"><div class="kpi-label">Total Videos Watched</div><div class="kpi-value" id="kpiVideos">—</div><div class="kpi-detail" id="kpiVideosDetail">—</div><div class="kpi-bar" id="kpiVideosBar" style="background: var(--accent-blue);"></div></div>
+        <div class="kpi-card"><div class="kpi-label">Course Completions</div><div class="kpi-value" id="kpiCourseComp">—</div><div class="kpi-detail" id="kpiCourseCompDetail">—</div><div class="kpi-bar" id="kpiCourseCompBar" style="background: var(--green);"></div></div>
+        <div class="kpi-card"><div class="kpi-label">Active Learners</div><div class="kpi-value" id="kpiLearners">—</div><div class="kpi-detail" id="kpiLearnersDetail">—</div><div class="kpi-bar" id="kpiLearnersBar" style="background: var(--accent-pink);"></div></div>
+    </section>
+    <section class="charts-row">
+        <div class="chart-card"><h3>Course Enrollment & Completion</h3><div class="chart-container"><canvas id="courseChart"></canvas></div></div>
+        <div class="chart-card"><h3>Videos Watched by User</h3><div class="chart-container"><canvas id="videosChart"></canvas></div></div>
+    </section>
+    <section class="table-section"><h3>Course Catalog</h3><div style="overflow-x: auto;"><table><thead><tr><th>Course</th><th>Type</th><th>Enrolled</th><th>Completed</th><th>Completion Rate</th></tr></thead><tbody id="courseTableBody"></tbody></table></div></section>
+
+    <h2 class="section-header">User Detail</h2>
+    <section class="table-section">
+        <div class="table-controls">
+            <input type="text" id="tableSearch" placeholder="Search by name or email...">
+            <span class="record-count" id="recordCount">—</span>
+        </div>
+        <div style="overflow-x: auto;">
+            <table><thead><tr>
+                <th data-col="USER_FULL_NAME">Name <span class="sort-arrow"></span></th>
+                <th data-col="brand">Organization <span class="sort-arrow"></span></th>
+                <th data-col="USER_EMAIL">Email <span class="sort-arrow"></span></th>
+                <th data-col="ONBOARDED">Onboarded <span class="sort-arrow"></span></th>
+                <th data-col="PROGRESS_SAVED">Last Active <span class="sort-arrow"></span></th>
+                <th data-col="status">ProfAI Status <span class="sort-arrow"></span></th>
+                <th data-col="use_cases">Use Cases <span class="sort-arrow"></span></th>
+                <th data-col="academy_videos">Videos <span class="sort-arrow"></span></th>
+                <th data-col="academy_courses">Courses <span class="sort-arrow"></span></th>
+            </tr></thead><tbody id="userTableBody"></tbody></table>
+        </div>
+    </section>
+
+    <footer>Powered by <a href="https://section.com">Section</a> Reporting API</footer>
+</div>
+
+<script>
+// ===========================================================================
+// API CONFIG
+// ===========================================================================
+const BASE_URL = 'https://prof.ai';
+const STORAGE_KEY = 'section_dashboard_api_key';
+
+// Dynamic color palette for auto-detected organizations
+const PALETTE = ['#3900FF', '#9901EB', '#00C896', '#F100D6', '#F59E0B', '#EF4444', '#3B82F6', '#8B5CF6'];
+let orgColorMap = {};
+function getOrgColor(org) {
+    if (!orgColorMap[org]) {
+        const idx = Object.keys(orgColorMap).length % PALETTE.length;
+        orgColorMap[org] = PALETTE[idx];
+    }
+    return orgColorMap[org];
+}
+
+// Derive org name from email domain
+function domainToOrg(domain) {
+    // Strip TLD, capitalize
+    const parts = domain.split('.');
+    if (parts.length >= 2) {
+        const name = parts.slice(0, -1).join(' ');
+        return name.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }
+    return domain;
+}
+
+// ===========================================================================
+// API CALLS (all browser-side)
+// ===========================================================================
+function getHeaders(apiKey) {
+    return { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
+}
+
+function parseCSV(text) {
+    const lines = text.trim().split('\n');
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(',');
+    return lines.slice(1).map(line => {
+        const vals = line.split(',');
+        const obj = {};
+        headers.forEach((h, i) => obj[h.trim()] = (vals[i] || '').trim());
+        return obj;
+    });
+}
+
+async function fetchProfAI(apiKey) {
+    const r = await fetch(`${BASE_URL}/v1/reports/profai`, {
+        method: 'POST', headers: getHeaders(apiKey),
+        body: JSON.stringify({ output: 'json', include_use_cases: true, include_skills: true })
+    });
+    if (!r.ok) throw new Error(`ProfAI API returned ${r.status}`);
+    return r.json();
+}
+
+async function fetchCSVEndpoint(apiKey, path) {
+    const r = await fetch(`${BASE_URL}${path}`, { method: 'POST', headers: getHeaders(apiKey) });
+    if (!r.ok) throw new Error(`${path} returned ${r.status}`);
+    return parseCSV(await r.text());
+}
+
+async function fetchAllData(apiKey) {
+    const [profaiRaw, courses, employees, courseMap] = await Promise.all([
+        fetchProfAI(apiKey),
+        fetchCSVEndpoint(apiKey, '/v0/reports/courses'),
+        fetchCSVEndpoint(apiKey, '/v0/reports/employees'),
+        fetchCSVEndpoint(apiKey, '/v0/reports/employee-course-map'),
+    ]);
+
+    // Normalize ProfAI keys + extract skills
+    const skillNames = new Set();
+    const users = profaiRaw.map(u => {
+        const skills = {};
+        const normalized = {};
+        for (const [k, v] of Object.entries(u)) {
+            if (k.startsWith('skill_')) {
+                const name = k.slice(6).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                skills[name] = v || '';
+                if (v) skillNames.add(name);
+                else skillNames.add(name); // track all skill names
+            } else {
+                const keyMap = { user_email: 'USER_EMAIL', user_full_name: 'USER_FULL_NAME', user_created_at: 'USER_CREATED_AT', user_type: 'USER_TYPE', onboarded: 'ONBOARDED', progress_saved: 'PROGRESS_SAVED', program_completed: 'PROGRAM_COMPLETED' };
+                const nk = keyMap[k] || k;
+                normalized[nk] = (v === null && ['ONBOARDED','PROGRESS_SAVED','PROGRAM_COMPLETED'].includes(nk)) ? '' : v;
+            }
+        }
+        // Auto-detect org from email domain
+        const email = normalized.USER_EMAIL || '';
+        const domain = email.includes('@') ? email.split('@')[1].toLowerCase() : 'unknown';
+        normalized.brand = domainToOrg(domain);
+        normalized.domain = domain;
+        normalized.skills = skills;
+
+        // Merge academy data
+        const empEmail = email.toLowerCase();
+        const emp = employees.find(e => (e.Email || '').toLowerCase() === empEmail);
+        normalized.academy = emp ? {
+            videos_watched: parseInt(emp['Videos Watched'] || 0),
+            courses_completed: parseInt(emp['Courses Completed'] || 0),
+            badges_earned: parseInt(emp['Badges Earned'] || 0),
+        } : {};
+        normalized.courses = courseMap.filter(c => (c.Email || '').toLowerCase() === empEmail).map(c => ({
+            course: c.Course || '', course_type: c['Course Type'] || '',
+            engagement: c.Engagement || '', videos_watched: parseInt(c['Videos Watched'] || 0),
+        }));
+
+        return normalized;
+    });
+
+    const dashCourses = courses.map(c => ({
+        id: c.Id || '', title: c.Title || '', type: c.Type || '',
+        enrolled: parseInt(c.Enrolled || 0), completed: parseInt(c.Completed || 0),
+    }));
+
+    return {
+        fetched_at: new Date().toISOString(),
+        total_users: users.length,
+        users, courses: dashCourses,
+        skill_names: [...skillNames].sort(),
+    };
+}
+
+// ===========================================================================
+// SETUP / AUTH
+// ===========================================================================
+async function handleConnect() {
+    const input = document.getElementById('apiKeyInput');
+    const btn = document.getElementById('connectBtn');
+    const err = document.getElementById('setupError');
+    const key = input.value.trim();
+
+    if (!key) { err.textContent = 'Please enter an API key.'; err.style.display = 'block'; return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading-spinner"></span>Connecting...';
+    err.style.display = 'none';
+
+    try {
+        DATA = await fetchAllData(key);
+        localStorage.setItem(STORAGE_KEY, key);
+        showDashboard();
+    } catch (e) {
+        err.textContent = e.message.includes('401') ? 'Invalid API key. Please check and try again.'
+            : e.message.includes('403') ? 'Access denied. This key may be expired.'
+            : `Connection failed: ${e.message}`;
+        err.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Connect';
+    }
+}
+
+function disconnect() {
+    localStorage.removeItem(STORAGE_KEY);
+    orgColorMap = {};
+    document.getElementById('setupScreen').classList.remove('hidden');
+    document.getElementById('dashboardView').classList.add('hidden');
+    document.getElementById('apiKeyInput').value = '';
+}
+
+function showDashboard() {
+    document.getElementById('setupScreen').classList.add('hidden');
+    document.getElementById('dashboardView').classList.remove('hidden');
+
+    // Set title based on detected orgs
+    const orgs = [...new Set(DATA.users.map(u => u.brand))].sort();
+    document.getElementById('dashTitle').textContent = orgs.length === 1
+        ? `${orgs[0]} — Section Deployment` : 'Section Deployment Dashboard';
+    document.title = document.getElementById('dashTitle').textContent;
+
+    initDashboard();
+}
+
+// ===========================================================================
+// STATE
+// ===========================================================================
+let DATA = { users: [], courses: [], skill_names: [], fetched_at: '' };
+let filteredUsers = [];
+let sortCol = 'brand';
+let sortDir = 'asc';
+
+// ===========================================================================
+// DASHBOARD INIT
+// ===========================================================================
+function initDashboard() {
+    filteredUsers = DATA.users;
+    document.getElementById('lastUpdated').textContent = `Updated: ${new Date(DATA.fetched_at).toLocaleString()}`;
+
+    const brandSelect = document.getElementById('brandFilter');
+    brandSelect.innerHTML = '<option value="all">All</option>';
+    const orgs = [...new Set(DATA.users.map(u => u.brand))].sort();
+    orgs.forEach(b => { const o = document.createElement('option'); o.value = b; o.textContent = b; brandSelect.appendChild(o); });
+
+    // Hide academy section if no data
+    const hasAcademy = DATA.courses && DATA.courses.length > 0;
+    document.getElementById('academyHeader').classList.toggle('hidden', !hasAcademy);
+    document.getElementById('academyKpis').classList.toggle('hidden', !hasAcademy);
+
+    document.getElementById('brandFilter').onchange = applyFilters;
+    document.getElementById('statusFilter').onchange = applyFilters;
+    document.getElementById('tableSearch').oninput = applyFilters;
+    document.querySelectorAll('th[data-col]').forEach(th => {
+        th.onclick = () => {
+            const col = th.dataset.col;
+            if (sortCol === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+            else { sortCol = col; sortDir = 'asc'; }
+            applyFilters();
+        };
+    });
+
+    applyFilters();
+}
+
+// ===========================================================================
+// FILTERING
+// ===========================================================================
+function getUserStatus(u) {
+    if (u.PROGRAM_COMPLETED) return 'completed';
+    if (u.PROGRESS_SAVED) return 'in-progress';
+    if (u.ONBOARDED) return 'onboarded';
+    return 'not-started';
+}
+function getSortVal(u, col) {
+    if (col === 'status') return getUserStatus(u);
+    if (col === 'academy_videos') return (u.academy && u.academy.videos_watched) || 0;
+    if (col === 'academy_courses') return (u.academy && u.academy.courses_completed) || 0;
+    if (col === 'use_cases') return u.total_use_cases_created || 0;
+    return u[col] || '';
+}
+
+function applyFilters() {
+    const brandVal = document.getElementById('brandFilter').value;
+    const statusVal = document.getElementById('statusFilter').value;
+    const search = document.getElementById('tableSearch').value.toLowerCase();
+    filteredUsers = DATA.users.filter(u => {
+        if (brandVal !== 'all' && u.brand !== brandVal) return false;
+        if (statusVal !== 'all' && getUserStatus(u) !== statusVal) return false;
+        if (search && !u.USER_FULL_NAME.toLowerCase().includes(search) && !u.USER_EMAIL.toLowerCase().includes(search)) return false;
+        return true;
+    });
+    filteredUsers.sort((a, b) => {
+        let va = getSortVal(a, sortCol), vb = getSortVal(b, sortCol);
+        if (typeof va === 'number' && typeof vb === 'number') return sortDir === 'asc' ? va - vb : vb - va;
+        return sortDir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+    });
+    updateKPIs(); updateCharts(); updateTable(); updateAcademyKPIs(); updateAcademyCharts(); updateCourseTable(); updateSkillsTable();
+}
+
+// ===========================================================================
+// PROFAI KPIs
+// ===========================================================================
+function updateKPIs() {
+    const total = filteredUsers.length;
+    const onboarded = filteredUsers.filter(u => u.ONBOARDED).length;
+    const completed = filteredUsers.filter(u => u.PROGRAM_COMPLETED).length;
+    const rate = onboarded > 0 ? (completed / onboarded * 100) : 0;
+
+    document.getElementById('kpiTotal').textContent = total;
+    document.getElementById('kpiTotalDetail').textContent = `${total} registered users`;
+    document.getElementById('kpiTotalBar').style.width = '100%';
+
+    document.getElementById('kpiOnboarded').textContent = onboarded;
+    document.getElementById('kpiOnboardedDetail').textContent = total > 0 ? `${(onboarded / total * 100).toFixed(0)}% of registered` : '—';
+    document.getElementById('kpiOnboardedBar').style.width = total > 0 ? `${onboarded / total * 100}%` : '0%';
+
+    document.getElementById('kpiCompleted').textContent = completed;
+    document.getElementById('kpiCompletedDetail').textContent = total > 0 ? `${(completed / total * 100).toFixed(0)}% of registered` : '—';
+    document.getElementById('kpiCompletedBar').style.width = total > 0 ? `${completed / total * 100}%` : '0%';
+
+    document.getElementById('kpiRate').textContent = `${rate.toFixed(0)}%`;
+    document.getElementById('kpiRateDetail').textContent = `${completed} of ${onboarded} onboarded`;
+    document.getElementById('kpiRateBar').style.width = `${rate}%`;
+
+    const totalUC = filteredUsers.reduce((s, u) => s + (u.total_use_cases_created || 0), 0);
+    const ucUsers = filteredUsers.filter(u => (u.total_use_cases_created || 0) > 0).length;
+    document.getElementById('kpiUseCases').textContent = totalUC;
+    document.getElementById('kpiUseCasesDetail').textContent = ucUsers > 0 ? `${ucUsers} user${ucUsers > 1 ? 's' : ''} contributing` : 'no use cases yet';
+    document.getElementById('kpiUseCasesBar').style.width = total > 0 ? `${ucUsers / total * 100}%` : '0%';
+}
+
+// ===========================================================================
+// ACADEMY KPIs
+// ===========================================================================
+function updateAcademyKPIs() {
+    const courses = DATA.courses || [];
+    if (!courses.length) return;
+    const totalEnrolled = courses.reduce((s, c) => s + c.enrolled, 0);
+    const totalCompleted = courses.reduce((s, c) => s + c.completed, 0);
+    const totalVids = filteredUsers.reduce((s, u) => s + ((u.academy && u.academy.videos_watched) || 0), 0);
+    const totalCourseComp = filteredUsers.reduce((s, u) => s + ((u.academy && u.academy.courses_completed) || 0), 0);
+    const activeLearners = filteredUsers.filter(u => u.academy && u.academy.videos_watched > 0).length;
+
+    document.getElementById('kpiCourses').textContent = courses.length;
+    document.getElementById('kpiCoursesDetail').textContent = `${totalEnrolled} total enrollments`;
+    document.getElementById('kpiCoursesBar').style.width = '100%';
+    document.getElementById('kpiVideos').textContent = totalVids;
+    document.getElementById('kpiVideosDetail').textContent = `across ${activeLearners} learners`;
+    document.getElementById('kpiVideosBar').style.width = '100%';
+    document.getElementById('kpiCourseComp').textContent = totalCourseComp;
+    document.getElementById('kpiCourseCompDetail').textContent = totalEnrolled > 0 ? `${totalCompleted} of ${totalEnrolled} enrollments` : '—';
+    document.getElementById('kpiCourseCompBar').style.width = totalEnrolled > 0 ? `${totalCompleted / totalEnrolled * 100}%` : '0%';
+    document.getElementById('kpiLearners').textContent = activeLearners;
+    document.getElementById('kpiLearnersDetail').textContent = filteredUsers.length > 0 ? `${(activeLearners / filteredUsers.length * 100).toFixed(0)}% of users` : '—';
+    document.getElementById('kpiLearnersBar').style.width = filteredUsers.length > 0 ? `${activeLearners / filteredUsers.length * 100}%` : '0%';
+}
+
+// ===========================================================================
+// CHARTS
+// ===========================================================================
+let brandChartInst, funnelChartInst, timelineChartInst, rateChartInst, courseChartInst, videosChartInst;
+
+function getBrandStats() {
+    const stats = {};
+    filteredUsers.forEach(u => {
+        if (!stats[u.brand]) stats[u.brand] = { total: 0, onboarded: 0, completed: 0, active: 0 };
+        stats[u.brand].total++;
+        if (u.ONBOARDED) stats[u.brand].onboarded++;
+        if (u.PROGRAM_COMPLETED) stats[u.brand].completed++;
+        if (u.PROGRESS_SAVED) stats[u.brand].active++;
+    });
+    return stats;
+}
+
+function updateCharts() {
+    const stats = getBrandStats();
+    const brands = Object.keys(stats).sort();
+
+    if (brandChartInst) brandChartInst.destroy();
+    brandChartInst = new Chart(document.getElementById('brandChart'), {
+        type: 'doughnut',
+        data: { labels: brands, datasets: [{ data: brands.map(b => stats[b].total), backgroundColor: brands.map(getOrgColor), borderWidth: 2, borderColor: '#fff' }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '55%', plugins: { legend: { position: 'bottom', labels: { padding: 16, font: { size: 12 } } }, tooltip: { callbacks: { label: ctx => { const t = ctx.dataset.data.reduce((a, b) => a + b, 0); return ` ${ctx.label}: ${ctx.raw} (${(ctx.raw / t * 100).toFixed(0)}%)`; } } } } }
+    });
+
+    if (funnelChartInst) funnelChartInst.destroy();
+    funnelChartInst = new Chart(document.getElementById('funnelChart'), {
+        type: 'bar',
+        data: { labels: brands, datasets: [
+            { label: 'Not Started', data: brands.map(b => stats[b].total - stats[b].onboarded), backgroundColor: '#FEE2E2', borderColor: '#EF4444', borderWidth: 1 },
+            { label: 'Onboarded', data: brands.map(b => stats[b].onboarded - stats[b].completed), backgroundColor: '#DBEAFE', borderColor: '#3B82F6', borderWidth: 1 },
+            { label: 'Completed', data: brands.map(b => stats[b].completed), backgroundColor: '#D1FAE5', borderColor: '#10B981', borderWidth: 1 },
+        ] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true, title: { display: true, text: 'Users' } } }, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    if (timelineChartInst) timelineChartInst.destroy();
+    const dc = {}; filteredUsers.forEach(u => { if (u.ONBOARDED) dc[u.ONBOARDED] = (dc[u.ONBOARDED] || 0) + 1; });
+    const dates = Object.keys(dc).sort(); let cum = 0;
+    timelineChartInst = new Chart(document.getElementById('timelineChart'), {
+        type: 'line',
+        data: { labels: dates.map(d => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })), datasets: [{ label: 'Cumulative', data: dates.map(d => { cum += dc[d]; return cum; }), borderColor: '#9901EB', backgroundColor: 'rgba(153,1,235,0.08)', fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#9901EB' }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, title: { display: true, text: 'Users Onboarded' } }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } }
+    });
+
+    if (rateChartInst) rateChartInst.destroy();
+    rateChartInst = new Chart(document.getElementById('rateChart'), {
+        type: 'bar',
+        data: { labels: brands, datasets: [{ data: brands.map(b => stats[b].onboarded > 0 ? (stats[b].completed / stats[b].onboarded * 100) : 0), backgroundColor: brands.map(getOrgColor), borderRadius: 6, maxBarThickness: 60 }] },
+        options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', scales: { x: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } }, y: { grid: { display: false } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.raw.toFixed(1)}%` } } } }
+    });
+}
+
+function updateAcademyCharts() {
+    const courses = DATA.courses || [];
+    if (!courses.length) return;
+
+    if (courseChartInst) courseChartInst.destroy();
+    courseChartInst = new Chart(document.getElementById('courseChart'), {
+        type: 'bar',
+        data: { labels: courses.map(c => c.title.length > 25 ? c.title.substring(0, 25) + '...' : c.title), datasets: [
+            { label: 'Enrolled', data: courses.map(c => c.enrolled), backgroundColor: '#DBEAFE', borderColor: '#3B82F6', borderWidth: 1 },
+            { label: 'Completed', data: courses.map(c => c.completed), backgroundColor: '#D1FAE5', borderColor: '#10B981', borderWidth: 1 },
+        ] },
+        options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', scales: { x: { beginAtZero: true }, y: { grid: { display: false } } }, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    if (videosChartInst) videosChartInst.destroy();
+    const top = filteredUsers.filter(u => u.academy && u.academy.videos_watched > 0).sort((a, b) => b.academy.videos_watched - a.academy.videos_watched).slice(0, 15);
+    videosChartInst = new Chart(document.getElementById('videosChart'), {
+        type: 'bar',
+        data: { labels: top.map(u => u.USER_FULL_NAME), datasets: [{ data: top.map(u => u.academy.videos_watched), backgroundColor: top.map(u => getOrgColor(u.brand)), borderRadius: 4, maxBarThickness: 40 }] },
+        options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', scales: { x: { beginAtZero: true }, y: { grid: { display: false } } }, plugins: { legend: { display: false } } }
+    });
+}
+
+// ===========================================================================
+// TABLES
+// ===========================================================================
+function updateCourseTable() {
+    const courses = DATA.courses || [];
+    document.getElementById('courseTableBody').innerHTML = courses.map(c => {
+        const r = c.enrolled > 0 ? (c.completed / c.enrolled * 100) : 0;
+        return `<tr><td>${c.title}</td><td><span class="status-badge" style="background:#EDE9FE;color:#5B21B6">${c.type}</span></td><td>${c.enrolled}</td><td>${c.completed}</td><td><span class="progress-bar-container"><span class="progress-bar-fill" style="width:${r}%"></span></span>${r.toFixed(0)}%</td></tr>`;
+    }).join('');
+}
+
+function updateSkillsTable() {
+    const names = DATA.skill_names || [];
+    const sec = document.getElementById('skillsSection');
+    if (!names.length) { sec.classList.add('hidden'); return; }
+    sec.classList.remove('hidden');
+    document.getElementById('skillsTableHead').innerHTML = `<tr><th>Name</th><th>Organization</th>${names.map(s => `<th>${s}</th>`).join('')}</tr>`;
+    const rows = filteredUsers.filter(u => u.ONBOARDED);
+    document.getElementById('skillsTableBody').innerHTML = rows.map(u => {
+        const sk = u.skills || {};
+        return `<tr><td>${u.USER_FULL_NAME}</td><td>${u.brand}</td>${names.map(s => sk[s] ? `<td><span class="skill-done">${sk[s]}</span></td>` : `<td><span class="skill-empty">—</span></td>`).join('')}</tr>`;
+    }).join('');
+}
+
+function updateTable() {
+    const SL = { completed: 'Completed', 'in-progress': 'In Progress', onboarded: 'Onboarded', 'not-started': 'Not Started' };
+    const SC = { completed: 'status-completed', 'in-progress': 'status-in-progress', onboarded: 'status-onboarded', 'not-started': 'status-not-started' };
+    const shown = filteredUsers.slice(0, 200);
+    document.getElementById('userTableBody').innerHTML = shown.map(u => {
+        const s = getUserStatus(u); const v = (u.academy && u.academy.videos_watched) || 0; const cc = (u.academy && u.academy.courses_completed) || 0; const uc = u.total_use_cases_created || 0;
+        return `<tr><td>${u.USER_FULL_NAME}</td><td>${u.brand}</td><td>${u.USER_EMAIL}</td><td>${u.ONBOARDED || '—'}</td><td>${u.PROGRESS_SAVED || '—'}</td><td><span class="status-badge ${SC[s]}">${SL[s]}</span></td><td>${uc > 0 ? uc : '—'}</td><td>${v > 0 ? v : '—'}</td><td>${cc > 0 ? cc : '—'}</td></tr>`;
+    }).join('');
+    document.getElementById('recordCount').textContent = filteredUsers.length === shown.length ? `${filteredUsers.length} users` : `Showing ${shown.length} of ${filteredUsers.length}`;
+    document.querySelectorAll('th[data-col]').forEach(th => {
+        const a = th.querySelector('.sort-arrow');
+        a.textContent = th.dataset.col === sortCol ? (sortDir === 'asc' ? '\u25B2' : '\u25BC') : '';
+    });
+}
+
+// ===========================================================================
+// BOOT
+// ===========================================================================
+document.addEventListener('DOMContentLoaded', async () => {
+    // Enter key on API key input
+    document.getElementById('apiKeyInput').addEventListener('keydown', e => { if (e.key === 'Enter') handleConnect(); });
+
+    // Check for saved key
+    const savedKey = localStorage.getItem(STORAGE_KEY);
+    if (savedKey) {
+        document.getElementById('apiKeyInput').value = savedKey;
+        try {
+            DATA = await fetchAllData(savedKey);
+            showDashboard();
+        } catch (e) {
+            // Saved key no longer works — show setup
+            localStorage.removeItem(STORAGE_KEY);
+        }
+    }
+});
+</script>
+</body>
+</html>
