@@ -103,6 +103,7 @@
         .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
         .chart-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
         .chart-card h3 { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 16px; }
+        .chart-card.full-width { grid-column: 1 / -1; }
         .chart-container { position: relative; height: 280px; }
 
         .table-section { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 28px; }
@@ -205,8 +206,7 @@
     </section>
 
     <section class="charts-row">
-        <div class="chart-card"><h3>Users by Organization</h3><div class="chart-container"><canvas id="brandChart"></canvas></div></div>
-        <div class="chart-card"><h3>Completion Funnel</h3><div class="chart-container"><canvas id="funnelChart"></canvas></div></div>
+        <div class="chart-card full-width"><h3>Completion Funnel</h3><div class="chart-container"><canvas id="funnelChart"></canvas></div></div>
     </section>
     <section class="charts-row">
         <div class="chart-card"><h3>Onboarding Timeline</h3><div class="chart-container"><canvas id="timelineChart"></canvas></div></div>
@@ -582,7 +582,7 @@ function updateAcademyKPIs() {
 // ===========================================================================
 // CHARTS
 // ===========================================================================
-let brandChartInst, funnelChartInst, timelineChartInst, rateChartInst, courseChartInst, videosChartInst;
+let funnelChartInst, timelineChartInst, rateChartInst, courseChartInst, videosChartInst;
 
 function getBrandStats() {
     const stats = {};
@@ -599,13 +599,6 @@ function getBrandStats() {
 function updateCharts() {
     const stats = getBrandStats();
     const brands = Object.keys(stats).sort();
-
-    if (brandChartInst) brandChartInst.destroy();
-    brandChartInst = new Chart(document.getElementById('brandChart'), {
-        type: 'doughnut',
-        data: { labels: brands, datasets: [{ data: brands.map(b => stats[b].total), backgroundColor: brands.map(getOrgColor), borderWidth: 2, borderColor: '#fff' }] },
-        options: { responsive: true, maintainAspectRatio: false, cutout: '55%', plugins: { legend: { position: 'bottom', labels: { padding: 16, font: { size: 12 } } }, tooltip: { callbacks: { label: ctx => { const t = ctx.dataset.data.reduce((a, b) => a + b, 0); return ` ${ctx.label}: ${ctx.raw} (${(ctx.raw / t * 100).toFixed(0)}%)`; } } } } }
-    });
 
     if (funnelChartInst) funnelChartInst.destroy();
     funnelChartInst = new Chart(document.getElementById('funnelChart'), {
