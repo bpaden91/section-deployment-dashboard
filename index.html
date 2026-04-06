@@ -53,6 +53,12 @@
             display: flex; justify-content: space-between; align-items: flex-start;
             margin-bottom: 28px; flex-wrap: wrap; gap: 16px;
         }
+        .title-block {
+            display: flex; align-items: center; gap: 12px;
+        }
+        .title-logo {
+            width: 280px; max-width: 48vw; height: auto; object-fit: contain;
+        }
         header .title-block h1 {
             font-family: 'Montserrat', 'Inter', sans-serif;
             font-size: 28px; font-weight: 700; color: var(--section-black); letter-spacing: -0.5px;
@@ -162,6 +168,11 @@
 <div class="dashboard hidden" id="dashboardView">
     <header>
         <div class="title-block">
+            <img
+                class="title-logo"
+                src="https://static.wixstatic.com/media/850880_21cc344a646543f680859e54b4b040f8~mv2.png"
+                alt="Market Performance Group logo"
+            >
             <h1 id="dashTitle">Section Deployment Dashboard</h1>
         </div>
         <div class="meta">
