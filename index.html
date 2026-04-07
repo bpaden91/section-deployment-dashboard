@@ -214,6 +214,10 @@
     </section>
 
     <section class="table-section" id="skillsSection">
+        <h3>Skill Completion by Skill</h3>
+        <div class="chart-container" style="margin-bottom: 16px;">
+            <canvas id="skillsCompletionChart"></canvas>
+        </div>
         <div class="table-section-header">
             <h3>Skill Completion</h3>
             <button class="section-toggle-btn" id="skillsToggleBtn" onclick="toggleSkillsSection()" aria-expanded="false">Expand</button>
@@ -582,7 +586,16 @@ function updateAcademyKPIs() {
 // ===========================================================================
 // CHARTS
 // ===========================================================================
-let funnelChartInst, timelineChartInst, rateChartInst, courseChartInst, videosChartInst;
+let funnelChartInst, timelineChartInst, rateChartInst, courseChartInst, videosChartInst, skillsCompletionChartInst;
+const SKILL_CHART_ORDER = [
+    'Advanced Prompting Techniques',
+    'Building A Copilot Agent',
+    'Building Claude Projects',
+    'Building Custom Gpt',
+    'Building Gems In Gemini',
+    'Image Video Generation',
+    'Working With Reasoning Models',
+];
 
 function getBrandStats() {
     const stats = {};
@@ -665,8 +678,13 @@ function updateCourseTable() {
 function updateSkillsTable() {
     const names = DATA.skill_names || [];
     const sec = document.getElementById('skillsSection');
-    if (!names.length) { sec.classList.add('hidden'); return; }
+    if (!names.length) {
+        sec.classList.add('hidden');
+        if (skillsCompletionChartInst) { skillsCompletionChartInst.destroy(); skillsCompletionChartInst = null; }
+        return;
+    }
     sec.classList.remove('hidden');
+    updateSkillsChart();
     document.getElementById('skillsTableHead').innerHTML = `<tr><th>Name</th><th>Organization</th>${names.map(s => `<th>${s}</th>`).join('')}</tr>`;
     const rows = filteredUsers.filter(u => u.ONBOARDED);
     document.getElementById('skillsTableBody').innerHTML = rows.map(u => {
@@ -687,6 +705,43 @@ function setSkillsCollapsed(collapsed) {
 function toggleSkillsSection() {
     skillsCollapsed = !skillsCollapsed;
     setSkillsCollapsed(skillsCollapsed);
+}
+
+function updateSkillsChart() {
+    if (skillsCompletionChartInst) skillsCompletionChartInst.destroy();
+    const completionCountBySkill = Object.fromEntries(SKILL_CHART_ORDER.map(skill => [skill, 0]));
+    const rows = filteredUsers.filter(u => u.ONBOARDED);
+    rows.forEach(u => {
+        const sk = u.skills || {};
+        SKILL_CHART_ORDER.forEach(skill => {
+            if (sk[skill]) completionCountBySkill[skill] += 1;
+        });
+    });
+
+    skillsCompletionChartInst = new Chart(document.getElementById('skillsCompletionChart'), {
+        type: 'bar',
+        data: {
+            labels: SKILL_CHART_ORDER,
+            datasets: [{
+                label: 'Users Completed',
+                data: SKILL_CHART_ORDER.map(skill => completionCountBySkill[skill]),
+                backgroundColor: '#9901EB',
+                borderColor: '#6D28D9',
+                borderWidth: 1,
+                borderRadius: 6,
+                maxBarThickness: 48,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { grid: { display: false }, ticks: { maxRotation: 45, minRotation: 45 } },
+                y: { beginAtZero: true, title: { display: true, text: 'Users Completed' }, ticks: { precision: 0 } },
+            },
+            plugins: { legend: { display: false } },
+        },
+    });
 }
 
 function updateTable() {
